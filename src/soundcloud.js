@@ -1,5 +1,5 @@
 var _ = require('underscore'),
-getResource = require('curl').curl,
+pigeon = require('pigeon'),
 q = require('q');
 
 var soundcloud = {
@@ -13,7 +13,7 @@ var soundcloud = {
 		
 		url = 'http://' + apiHost + path + '.json?client_id=99308a0184193d62e064cb770f4c1eae';//?' + querystring.stringify(options);
 
-		return getResource(url).then(JSON.parse);
+		return pigeon.get(url).then(JSON.parse);
 		
 	}
 

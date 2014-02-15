@@ -10,6 +10,6 @@
     "underscore":"1.5.2",
     "jquery":"2.1.0-beta3",
     "q":"0.9",
-    "curl":"git://github.com/davidturissini/curl.git"
+    "pigeon":"git://github.com/davidturissini/pigeon.git"
   }
 }
