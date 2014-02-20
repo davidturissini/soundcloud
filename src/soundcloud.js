@@ -33,7 +33,7 @@ var soundcloud = {
 
 				promises.push(promise);
 			}(offset));
-
+			
 			if (offset < max && limit + offset > max && max === 8000) {
 				offset = max;
 			} else {
@@ -42,7 +42,7 @@ var soundcloud = {
 
 		}
 
-		return q.all(promises)
+		return q.allSettled(promises)
 			.then(function () {
 				return data;
 			})
