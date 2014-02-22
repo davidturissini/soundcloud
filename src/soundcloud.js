@@ -16,49 +16,60 @@ var soundcloud = {
 		var data = [];
 		var promises = [];
 		var offset = 0;
-		var offsets = [];
 		max = (max > 8000) ? 8000 : max;
+		var paramsHistory = [];
 
-		while(offset <= max && max !== 0) {
+
+		for(offset; offset < max; offset += limit) {
 			(function (o) {
-
-				var promise = soundcloud.api(url, {
+				var params = {
 					limit:limit,
 					offset:o
-				})
+				};
 
-				.then(function (returnedData) {
+				var promise = soundcloud.api(url, params);
+				paramsHistory.push(params);
+
+				promise = promise.then(function (returnedData) {
 					data = data.concat(returnedData);
-				})
+				});
 
 				promises.push(promise);
-			}(offset));
-			
-			if (offset < max && limit + offset > max && max === 8000) {
-				offset = max;
-			} else {
-				offset += limit;
-			}
 
+
+			})(offset);
 		}
 
 		return q.allSettled(promises)
 			.then(function () {
+				if(data.length === 0) {
+					console.log('url', url, 'params', paramsHistory);
+				}
 				return data;
 			})
 	},
 	
 	api: function (path, requestOptions) {
 
-		var deferred = q.defer(), 
+		var defer = q.defer(), 
 		options = requestOptions || {}, 
 		apiHost = 'api.soundcloud.com',
 		url;
 		
 		url = 'http://' + apiHost + path + '.json';
 
-		return pigeon.get(url, _.extend(defaults, requestOptions || {})).then(JSON.parse);
+		pigeon.get(url, _.extend(defaults, requestOptions || {}))
+			.then(function (e) {
+				var json = JSON.parse(e);
+				defer.resolve(json);
+			}, function () {
+				soundcloud.api(path, requestOptions)
+					.then(function (parsed, raw) {
+						defer.resolve(parsed);
+					})
+			});
 		
+		return defer.promise;
 	}
 
 };
