@@ -13,11 +13,11 @@ var soundcloud = {
 	},
 
 	joinPaginated: function (url, limit, max) {
+		var defer = q.defer();
 		var data = [];
 		var promises = [];
 		var offset = 0;
 		max = (max > 8000) ? 8000 : max;
-		var paramsHistory = [];
 
 
 		for(offset; offset < max; offset += limit) {
@@ -28,9 +28,9 @@ var soundcloud = {
 				};
 
 				var promise = soundcloud.api(url, params);
-				paramsHistory.push(params);
 
 				promise = promise.then(function (returnedData) {
+					defer.notify(returnedData);
 					data = data.concat(returnedData);
 				});
 
@@ -40,13 +40,12 @@ var soundcloud = {
 			})(offset);
 		}
 
-		return q.allSettled(promises)
+		q.all(promises)
 			.then(function () {
-				if(data.length === 0) {
-					console.log('url', url, 'params', paramsHistory);
-				}
-				return data;
-			})
+				defer.resolve(data);
+			});
+
+		return defer.promise;
 	},
 	
 	api: function (path, requestOptions) {
