@@ -12,20 +12,21 @@ var soundcloud = {
 		defaults = _.extend(defaults, config);
 	},
 
-	joinPaginated: function (url, limit, max) {
+	joinPaginated: function (url, limit, max, options) {
 		var defer = q.defer();
 		var data = [];
 		var promises = [];
 		var offset = 0;
+		options = options || {};
 		max = (max > 8000) ? 8000 : max;
 
 
 		for(offset; offset < max; offset += limit) {
 			(function (o) {
-				var params = {
+				var params = _.extend(options, {
 					limit:limit,
 					offset:o
-				};
+				});
 
 				var promise = soundcloud.api(url, params);
 
