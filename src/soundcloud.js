@@ -6,6 +6,7 @@ var defaults = {
 	client_id:''
 }
 
+
 var soundcloud = {
 
 	configure: function (config) {
@@ -13,40 +14,35 @@ var soundcloud = {
 	},
 
 	joinPaginated: function (url, limit, max, options) {
-		var defer = q.defer();
 		var data = [];
 		var promises = [];
 		var offset = 0;
+		var params;
 		options = options || {};
 		max = (max > 8000) ? 8000 : max;
 
 
 		for(offset; offset < max; offset += limit) {
-			(function (o) {
-				var params = _.extend(options, {
-					limit:limit,
-					offset:o
-				});
-
-				var promise = soundcloud.api(url, params);
-
-				promise = promise.then(function (returnedData) {
-					defer.notify(returnedData);
-					data = data.concat(returnedData);
-				});
-
-				promises.push(promise);
-
-
-			})(offset);
-		}
-
-		q.all(promises)
-			.then(function () {
-				defer.resolve(data);
+			params = _.extend(options, {
+				limit:limit,
+				offset:offset
 			});
 
-		return defer.promise;
+			promises.push(soundcloud.api(url, params));
+		}
+
+
+
+		function pushData(returnedData) {
+			data = data.concat(returnedData);
+		};
+
+		return promises.reduce(function (previousValue, currentValue) {
+			return currentValue.then(pushData);
+		}, q()).then(function () {
+			return data;
+		})
+
 	},
 	
 	api: function (path, requestOptions) {
@@ -62,7 +58,8 @@ var soundcloud = {
 			.then(function (e) {
 				var json = JSON.parse(e);
 				defer.resolve(json);
-			}, function () {
+			}, function (e) {
+				console.log(e.stack);
 				soundcloud.api(path, requestOptions)
 					.then(function (parsed, raw) {
 						defer.resolve(parsed);
