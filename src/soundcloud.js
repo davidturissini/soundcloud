@@ -13,35 +13,62 @@ var soundcloud = {
 		defaults = _.extend(defaults, config);
 	},
 
-	joinPaginated: function (url, limit, max, options) {
-		var data = [];
+	joinPaginatedPromises: function (url, limit, max, options) {
 		var promises = [];
 		var offset = 0;
 		var params;
+		var limitRemainder;
+		var limits = [];
 		options = options || {};
 		max = (max > 8000) ? 8000 : max;
-
+		
 
 		for(offset; offset < max; offset += limit) {
-			params = _.extend(options, {
-				limit:limit,
+			limitRemainder = limit;
+
+			if (max - offset < limit) {
+				limitRemainder = max - offset;
+			}
+
+			limits.push({
+				limit:(max - offset < limit) ? max - offset : limit,
 				offset:offset
 			});
-
-			promises.push(soundcloud.api(url, params));
+			
 		}
 
+		limits.forEach(function (limit, index) {
+			var params = _.extend(_.clone(options), limit);
+			promises.push(function () {
+				return soundcloud.api(url, params);
+			});
+		});
+		
 
+		return promises;
+	},
+
+	joinPaginated: function () {
+		var paginatedPromises = this.joinPaginatedPromises.apply(this, arguments);
+		var promises = [];
+		var data = [];
+		
 
 		function pushData(returnedData) {
 			data = data.concat(returnedData);
 		};
 
-		return promises.reduce(function (previousValue, currentValue) {
-			return currentValue.then(pushData);
-		}, q()).then(function () {
+		promises = paginatedPromises.map(function (promise) {
+			return promise().then(pushData);
+		});
+
+		return q.all(promises).then(function () {
 			return data;
 		})
+
+		.fail(function (e) {
+			console.log(e.stack);
+		});
 
 	},
 	
@@ -54,8 +81,12 @@ var soundcloud = {
 		
 		url = 'http://' + apiHost + path + '.json';
 
-		pigeon.get(url, _.extend(defaults, requestOptions || {}))
+		pigeon.get(url, _.extend(_.clone(defaults), options))
 			.then(function (e) {
+				if (options.parse === false) {
+					defer.resolve(e);
+					return;
+				}
 				var json = JSON.parse(e);
 				defer.resolve(json);
 			}, function (e) {
