@@ -87,10 +87,15 @@ var soundcloud = {
 					defer.resolve(e);
 					return;
 				}
+				
 				var json = JSON.parse(e);
 				defer.resolve(json);
 			}, function (e) {
-				console.log(e.stack);
+				if (e.status && e.status === 404) {
+					defer.reject(e);
+					return;
+				};
+
 				soundcloud.api(path, requestOptions)
 					.then(function (parsed, raw) {
 						defer.resolve(parsed);
